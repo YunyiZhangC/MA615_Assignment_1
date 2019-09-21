@@ -1,0 +1,177 @@
+---
+title: "Class Assignment: MPG tables and charts"
+author: "Yunyi Zhang"
+date: "September 16, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)                ## loading the entire knitr package
+library(tidyverse)              ####### change# load tidyverse
+library(esquisse)             ## use esquisse to setup the basic plots
+
+library(kableExtra)
+library(magrittr)
+opts_chunk$set(echo = FALSE)
+```
+
+# Using the tidyverse (especially dplyr) for MPG
+
+Recall assignment:
+
+Tables should include a comparison of city and highway mileage by the class of car and the best three car models for city and highway mileage for all the years in which data is available.  
+
+Plot the data displaying as much of the data as you can. Put continuous variables on the axes and include a locally smoothed regression line to show the relationship with mileage.  Also make a box plot comparing city and highway MPG by class of car.  
+
+
+## Tables
+
+
+
+
+```{r}
+
+data(mpg)     ## load the data
+
+
+mpg$cyl <- as.factor(mpg$cyl)   ## convert discrete variables to factors so that they plot
+mpg$drv <- as.factor(mpg$drv)   ## as different colors, not gradations of one color
+
+mpg$cty <- as.double(mpg$cty)
+
+mpg_1 <- select(mpg, cty, hwy, class )
+
+
+mpg_1 %<>% group_by(class) %>% 
+  summarise(City=mean(cty),
+            Highway=mean(hwy)) %>% 
+  arrange(class, City, Highway) 
+
+
+
+
+
+
+
+
+                                
+class <- unique(mpg$class)      ## define a vector for car classes
+
+cty_mean <- rep(0, length(class))  ## define variables to hold mean mileage
+hwy_mean <- rep(0,length(class))   ## for each class of car
+
+for(i in 1:length(class)){                          ## calculate the mean city and 
+  cty_mean[i] = mean(mpg$cty[mpg$class==class[i]])  ## highway mileage for each 
+  hwy_mean[i] = mean(mpg$hwy[mpg$class==class[i]])  ## class of car
+}
+
+cty_mean <- round(cty_mean, 2)                      ## round the results to 2 decimal pla
+hwy_mean <- round(hwy_mean, 2)
+
+tbl_1 <- cbind(class, cty_mean,hwy_mean)      ## form an array for the table
+
+kable(tbl_1, format = "latex", booktabs=TRUE, digits = 2,     ## call kable to make the table
+      col.names = c("Class", "City", "Highway"), 
+      caption = "Mean City and Highway MPG by Car Class" )      
+
+
+
+
+
+
+```
+
+
+The next table is a bit tricky. 
+
+
+
+```{r}
+
+##  You probably want to get started with a little investigation. 
+##  Using unique(mpg$year), you find out that there are only two years - 1999, 2008.
+
+
+options(digits = 3)
+data <-select(mpg,model,year,cty,hwy)
+mod_08_cty_mean <- mpg %>% dplyr::filter(year == 2008) %>%
+group_by(model) %>% dplyr::summarise(City= mean(cty)) %>% arrange(desc(City)) %>%   head(3)
+mod_99_cty_mean <- mpg %>% dplyr::filter(year == 1999) %>%
+group_by(model) %>% dplyr::summarise(City= mean(cty)) %>% arrange(desc(City)) %>%   head(3)
+mod_08_hwy_mean <- mpg %>% dplyr::filter(year == 2008) %>%
+group_by(model) %>% dplyr::summarise(City= mean(hwy)) %>% arrange(desc(City)) %>%   head(3)
+mod_99_hwy_mean <- mpg %>% dplyr::filter(year == 1999) %>%
+group_by(model) %>% dplyr::summarise(City= mean(hwy)) %>% arrange(desc(City)) %>%   head(3)
+
+table2 <-cbind(mod_99_cty_mean, mod_99_hwy_mean, mod_08_cty_mean, mod_08_hwy_mean)
+
+colnames(table2) <- c('Model', 'Milage', "Model", "Milage",'Model', 'Milage',"Model", "Milage")
+kable(table2, digits = 2, format = "latex", booktabs=TRUE, ,caption = "Top 3 MPG Performing Cars: 1999, 2008") %>% kable_styling() %>%
+  add_header_above(c("City 1999"=2, 
+                     "Highway 1999"=2,
+                     "City 2008"=2,
+                   "Highway 2008"=2))
+
+```
+
+
+
+
+```{r}
+
+
+
+
+
+library(ggplot2)
+
+ggplot(mpg) +
+ aes(x = displ, y = cty) +
+ geom_point(aes(color=class),size=2) + geom_smooth() +
+ scale_color_hue() +
+ theme_minimal(base_size = 16) +
+ facet_wrap(vars(year)) + 
+  labs(x = "Engine Displacement",y = "City Mileage" ,title = "City MPG by Class of Car: 1999, 2008")
+ 
+ 
+ 
+ ggplot(mpg) +
+ aes(x = displ, y = hwy) +
+ geom_point(aes(color=class),size=2) + geom_smooth() +
+ scale_color_hue() +
+ theme_minimal(base_size = 16) +
+ facet_wrap(vars(year)) + 
+  labs(x = "Engine Displacement", y = "Highway Mileage", title = "Highway MPG by Class of Car: 1999, 2008")
+ 
+ 
+
+##esquisser(mpg)
+
+```
+
+Boxplots
+
+```{r}
+
+
+
+ggplot(mpg) +
+ aes(x = class, y = cty) +
+ geom_boxplot(fill = "#0c4c8a") +
+ theme_minimal(base_size=16) +
+  labs(x = "Car Class", y = "City Mileage", title = "City MPG by Class of Car: 1999, 2008")
+
+
+ggplot(mpg) +
+ aes(x = class, y = hwy) +
+ geom_boxplot(fill = "#0c4c8a") +
+ theme_minimal(base_size=16) +
+  labs(x = "Car Class", y = "Highway Mileage", title = "Highway MPG by Class of Car: 1999, 2008")
+
+
+
+
+
+```
+
+
